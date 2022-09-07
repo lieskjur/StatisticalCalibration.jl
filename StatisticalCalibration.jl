@@ -1,69 +1,96 @@
 using NLopt
 using LinearAlgebra
 
+q̃(p̄,ϕ,Δl,Δψ) = [ ϕ, (p̄[1]+Δl)*cos(ϕ+p̄[2]+Δψ), (p̄[1]+Δl)*sin(ϕ+p̄[2]+Δψ) ]
+
 # Problem
 ## Constraint function
 f(p,q) = [ p[1]*cos(q[1]+p[2]) - q[2],
            p[1]*sin(q[1]+p[2]) - q[3] ]
 
-## theoretical parameters
-p̄ = [1,0]
-
 ## Weights
 iCp = diagm([1,1])
 iCq = diagm([1e4,1e4,1e4])
 
-## Generated test measurements
-F(p̄,ϕ,Δl,Δψ) = [ ϕ, (p̄[1]+Δl)*cos(ϕ+p̄[2]+Δψ), (p̄[1]+Δl)*sin(ϕ+p̄[2]+Δψ) ]
-Q̄ = mapreduce(ϕ->F(p̄,ϕ,1e-3,1e-3), hcat, [pi/2,pi/3,pi/4,pi/6,pi/8])
+## theoretical parameters & Generated test measurements
+p̄ = [1,0]
+Q̄ = mapreduce(ϕ->q̃(p̄,ϕ,1e-3,1e-3), hcat, [pi/2,pi/3,pi/4,pi/6,pi/8])
 
 # Solver
-## dimensions
-np = length(p̄) # number of parameters
-nq,nm = size(Q̄) # number of coordinates, number of measurements
-nc = length(f(p̄,Q̄[1,:])) # number of constraint equations
+struct ProblemDims
+    np::Int # number of parameters
+    nq::Int # number of coordinates
+    nm::Int # number of measurements
+    nc::Int # number of constraint equations
+    n::Int # dimension of x
+    m::Int # dimension of c
 
-n = np+nq*nm # dimension of x
-m = nc*nm # dimension of c
+    function ProblemDims(
+        f::Function,
+        p::AbstractVector{<:Real},
+        Q::AbstractMatrix{<:Real}
+        )
+        
+        np = length(p̄) 
+        nq,nm = size(Q̄) 
+        nc = length(f(p̄,Q̄[1,:]))
 
-## Assert weight matrix sizes
-@assert size(iCp) == (np,np)
-@assert size(iCq) == (nq,nq)
+        n = np+nq*nm
+        m = nc*nm
 
-## Helper function to unpack the vector of optimized parameters
-function unpack(x::Vector)
-    @assert length(x) == n
+        return new(np,nq,nm,nc,n,m)
+    end
+end
 
-    p = x[1:np]
-    Q = reshape(x[np+1:end],nq,nm)
+function unpack(dims::ProblemDims, x::AbstractVector)
+    @assert length(x) == dims.n
+    p = x[1:dims.np]
+    Q = reshape(x[dims.np+1:end],dims.nq,dims.nm)
     return p,Q
 end
 
 ## Quadratic objective function
-function objective_function(x::Vector, grad::Vector)
-    if length(grad) > 0
-        error("use a derivative-free solver")
-    end
-    p̂,Q̂ = unpack(x)
+function objective_function(
+    dims::ProblemDims,
+    iCp::AbstractMatrix,
+    iCq::AbstractMatrix,
+    x::AbstractVector,
+    grad::AbstractVector
+    )
+    length(grad) == 0 || error("use a derivative-free solver")
+    p̂,Q̂ = unpack(dims,x)
     return p̂'*iCp*p̂ + mapreduce(q̂ -> q̂'*iCq*q̂, +, eachcol(Q̂))
 end
 
 ## Non-linear constraints
-function constraint_function(res::Vector, x::Vector, grad::Matrix)
-    if length(grad) > 0
-        error("use a derivative-free solver")
-    end
-    p̂,Q̂ = unpack(x)
+function constraint_function(
+    dims::ProblemDims,
+    f::Function,
+    p̄::AbstractVector,
+    Q̄::AbstractMatrix,
+    res::AbstractVector,
+    x::AbstractVector,
+    grad::AbstractMatrix
+    )
+    length(grad) == 0 || error("use a derivative-free solver")
+    p̂,Q̂ = unpack(dims,x)
     res .= mapreduce( q -> f(p̄+p̂,q), vcat, eachcol(Q̂+Q̄))
     return nothing
 end
+
+## Assert weight matrix sizes
+
+dims = ProblemDims(f,p̄,Q̄)
+
+@assert size(iCp) == (np,np)
+@assert size(iCq) == (nq,nq)
 
 ## Optimization problem
 opt = Opt(:LN_COBYLA, n)
 opt.xtol_rel = 1e-12
 
-opt.min_objective = objective_function
-equality_constraint!(opt, constraint_function, 1e-12*ones(m))
+opt.min_objective = (x,grad)->objective_function(dims,iCp,iCq,x,grad)
+equality_constraint!(opt, (res,x,grad)->constraint_function(dims,f,p̄,Q̄,res,x,grad), 1e-12*ones(dims.m))
 
 # Solution
 optf,optx,ret = optimize(opt,zeros(n))
