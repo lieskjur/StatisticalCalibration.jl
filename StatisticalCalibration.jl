@@ -30,14 +30,11 @@ struct ProblemDims
         p::AbstractVector{<:Real},
         Q::AbstractMatrix{<:Real}
         )
-        
         np = length(p̄) 
         nq,nm = size(Q̄) 
         nc = length(f(p̄,Q̄[1,:]))
-
         n = np+nq*nm
         m = nc*nm
-
         return new(np,nq,nm,nc,n,m)
     end
 end
@@ -79,23 +76,34 @@ function constraint_function(
 end
 
 ## Assert weight matrix sizes
+function calibrate(
+    f::Function,
+    iCp::AbstractMatrix,
+    iCq::AbstractMatrix,
+    p̄::AbstractVector,
+    Q̄::AbstractMatrix
+    )
+    
+    dims = ProblemDims(f,p̄,Q̄)
 
-dims = ProblemDims(f,p̄,Q̄)
+    @assert size(iCp) == (dims.np,dims.np)
+    @assert size(iCq) == (dims.nq,dims.nq)
 
-@assert size(iCp) == (np,np)
-@assert size(iCq) == (nq,nq)
+    ## Optimization problem
+    opt = Opt(:LN_COBYLA, dims.n)
+    opt.xtol_rel = 1e-12
 
-## Optimization problem
-opt = Opt(:LN_COBYLA, n)
-opt.xtol_rel = 1e-12
+    opt.min_objective = (x,grad)->objective_function(dims,iCp,iCq,x,grad)
+    equality_constraint!(opt, (res,x,grad)->constraint_function(dims,f,p̄,Q̄,res,x,grad), 1e-12*ones(dims.m))
 
-opt.min_objective = (x,grad)->objective_function(dims,iCp,iCq,x,grad)
-equality_constraint!(opt, (res,x,grad)->constraint_function(dims,f,p̄,Q̄,res,x,grad), 1e-12*ones(dims.m))
+    # Solution
+    optf,optx,ret = optimize(opt,zeros(dims.n))
+    optp̂,optQ̂ = unpack(dims,optx)
 
-# Solution
-optf,optx,ret = optimize(opt,zeros(n))
-optp̂,optQ̂ = unpack(optx)
+    return optf, optp̂, optQ̂, ret
+end
 
+optf, optp̂, optQ̂, ret = calibrate(f,iCp,iCq,p̄,Q̄)
 display(ret)
 display(optp̂)
 display(optQ̂)
