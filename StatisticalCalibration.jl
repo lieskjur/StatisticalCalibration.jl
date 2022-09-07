@@ -7,9 +7,8 @@ struct ProblemDims
     np::Int # number of parameters
     nq::Int # number of coordinates
     nm::Int # number of measurements
-    nc::Int # number of constraint equations
-    n::Int # dimension of x
-    m::Int # dimension of c
+    nx::Int # dimension of x
+    nc::Int # dimension of c
 
     function ProblemDims(
         f::Function,
@@ -18,15 +17,15 @@ struct ProblemDims
         )
         np = length(p) 
         nq,nm = size(Q) 
-        nc = length(f(p,Q[1,:]))
-        n = np+nq*nm
-        m = nc*nm
-        return new(np,nq,nm,nc,n,m)
+        nf = length(f(p,Q[1,:]))
+        nx = np+nq*nm
+        nc = nf*nm
+        return new(np,nq,nm,nx,nc)
     end
 end
 
 function unpack(dims::ProblemDims, x::AbstractVector)
-    @assert length(x) == dims.n
+    @assert length(x) == dims.nx
     p = x[1:dims.np]
     Q = reshape(x[dims.np+1:end],dims.nq,dims.nm)
     return p,Q
@@ -76,18 +75,18 @@ function calibrate(
     @assert size(iCq) == (dims.nq,dims.nq)
 
     ## Optimization problem
-    opt = Opt(:LN_COBYLA, dims.n)
+    opt = Opt(:LN_COBYLA, dims.nx)
     opt.xtol_rel = 1e-12
 
     opt.min_objective = (x,grad)->objective_function(dims,iCp,iCq,x,grad)
     con_func = (res,x,grad)->constraint_function(dims,f,p̄,Q̄,res,x,grad)
-    equality_constraint!(opt, con_func, 1e-12*ones(dims.m))
+    equality_constraint!(opt, con_func, 1e-12*ones(dims.nc))
 
     # Solution
-    optf,optx,ret = optimize(opt,zeros(dims.n))
+    optf,optx,ret = optimize(opt,zeros(dims.nx))
     optp̂,optQ̂ = unpack(dims,optx)
 
-    return optf, optp̂, optQ̂, ret
+    return optp̂,optQ̂,optf,ret
 end
 
 end
