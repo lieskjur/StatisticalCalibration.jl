@@ -1,20 +1,6 @@
+module StatisticalCalibration
+export calibrate
 using NLopt
-using LinearAlgebra
-
-q̃(p̄,ϕ,Δl,Δψ) = [ ϕ, (p̄[1]+Δl)*cos(ϕ+p̄[2]+Δψ), (p̄[1]+Δl)*sin(ϕ+p̄[2]+Δψ) ]
-
-# Problem
-## Constraint function
-f(p,q) = [ p[1]*cos(q[1]+p[2]) - q[2],
-           p[1]*sin(q[1]+p[2]) - q[3] ]
-
-## Weights
-iCp = diagm([1,1])
-iCq = diagm([1e4,1e4,1e4])
-
-## theoretical parameters & Generated test measurements
-p̄ = [1,0]
-Q̄ = mapreduce(ϕ->q̃(p̄,ϕ,1e-3,1e-3), hcat, [pi/2,pi/3,pi/4,pi/6,pi/8])
 
 # Solver
 struct ProblemDims
@@ -30,9 +16,9 @@ struct ProblemDims
         p::AbstractVector{<:Real},
         Q::AbstractMatrix{<:Real}
         )
-        np = length(p̄) 
-        nq,nm = size(Q̄) 
-        nc = length(f(p̄,Q̄[1,:]))
+        np = length(p) 
+        nq,nm = size(Q) 
+        nc = length(f(p,Q[1,:]))
         n = np+nq*nm
         m = nc*nm
         return new(np,nq,nm,nc,n,m)
@@ -94,7 +80,8 @@ function calibrate(
     opt.xtol_rel = 1e-12
 
     opt.min_objective = (x,grad)->objective_function(dims,iCp,iCq,x,grad)
-    equality_constraint!(opt, (res,x,grad)->constraint_function(dims,f,p̄,Q̄,res,x,grad), 1e-12*ones(dims.m))
+    con_func = (res,x,grad)->constraint_function(dims,f,p̄,Q̄,res,x,grad)
+    equality_constraint!(opt, con_func, 1e-12*ones(dims.m))
 
     # Solution
     optf,optx,ret = optimize(opt,zeros(dims.n))
@@ -103,7 +90,4 @@ function calibrate(
     return optf, optp̂, optQ̂, ret
 end
 
-optf, optp̂, optQ̂, ret = calibrate(f,iCp,iCq,p̄,Q̄)
-display(ret)
-display(optp̂)
-display(optQ̂)
+end
