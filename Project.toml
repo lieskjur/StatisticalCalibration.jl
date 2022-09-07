@@ -1,0 +1,5 @@
+name = "StatisticalCalibration"
+uuid = "b26b45e1-32b0-485a-b1d4-eae9ff5bf40e"
+
+[deps]
+NLopt = "76087f3c-5699-56af-9a33-bf431cd00edd"
