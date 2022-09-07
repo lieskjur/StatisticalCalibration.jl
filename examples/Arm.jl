@@ -8,11 +8,11 @@ q̃(p̄,ϕ,Δl,Δψ) = [ ϕ, (p̄[1]+Δl)*cos(ϕ+p̄[2]+Δψ), (p̄[1]+Δl)*sin(
 f(p,q) = [ p[1]*cos(q[1]+p[2]) - q[2],
            p[1]*sin(q[1]+p[2]) - q[3] ]
 
-## Weights
+## Covariance matrices
 Cp = diagm([1,1])
 Cq = diagm([1e-4,1e-4,1e-4])
 
-## theoretical parameters & Generated test measurements
+## theoretical parameters & generated test measurements
 p̄ = [1,0]
 Q̄ = mapreduce(ϕ->q̃(p̄,ϕ,1e-3,1e-3), hcat, [pi/2,pi/3,pi/4,pi/6,pi/8])
 

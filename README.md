@@ -4,14 +4,15 @@ Package for the kinematic calibration of mechanisms based on the covariance of s
 
 ## Usage
 
-The only exported method `calibrate(f,Cp,Cq,p̄,Q̄,tol;stopval,ftol_rel,...)` takes as postional arguments
+The only exported method `calibrate(f,Cp,Cq,p̄,Q̄,tol;kwargs...)` takes as arguments
 
 1. residual function of constraint equations `f(p,q)=0` where `p` is a vector of calibrated dimesions and `q` a vector of sensor measurements
 2. `np x np` and `nq x nq` covariance matrices for `p` and `q` respectively
 3. vector of designed dimensions `p̄` and a matrix `Q̄` where each vector represents a measurement of `q`
 4. vector (or number) `tol` determining the tolerance of individual (or all) constraint equation
-
-and keyword arguments in the form of [stopping criteria](https://github.com/JuliaOpt/NLopt.jl#stopping-criteria) for [`NLopt`](https://github.com/JuliaOpt/NLopt.jl) problems which are formulated internaly. It's output are corrections `p̂` and `Q̂` the optimal value of `f` and the return code of the optimization `ret`.
+5. kwargs in the form of [stopping criteria](https://github.com/JuliaOpt/NLopt.jl#stopping-criteria) for [`NLopt`](https://github.com/JuliaOpt/NLopt.jl) problems which are formulated internaly.
+ 
+It's output are corrections `p̂` and `Q̂` the optimal value of `f` and the return code of the optimization `ret`.
 
 ## Example
 here is an [example](examples/Arm.jl) on a single arm measuring it's endpoint in 2D Cartesian coordinates

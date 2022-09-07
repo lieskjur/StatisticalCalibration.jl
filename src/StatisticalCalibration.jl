@@ -68,13 +68,7 @@ function calibrate(
     p̄::AbstractVector{<:Real},
     Q̄::AbstractMatrix{<:Real},
     tol::Union{Real,AbstractVector{<:Real}};
-    stopval=nothing,
-    ftol_rel=nothing,
-    ftol_abs=nothing,
-    xtol_rel=nothing,
-    xtol_abs=nothing,
-    maxeval=nothing,
-    maxtime=nothing
+    kwargs...
     )
     
     dims = ProblemDims(f,p̄,Q̄)
@@ -87,20 +81,16 @@ function calibrate(
     ## Optimization problem
     opt = Opt(:LN_COBYLA, dims.nx)
 
-    stopval != nothing ? opt.stopval = stopval : nothing
-    ftol_rel != nothing ? opt.ftol_rel = ftol_rel : nothing
-    ftol_abs != nothing ? opt.ftol_abs = ftol_abs : nothing
-    xtol_rel != nothing ? opt.xtol_rel = xtol_rel : nothing
-    xtol_abs != nothing ? opt.xtol_abs = xtol_abs : nothing
-    maxeval != nothing ? opt.maxeval = maxeval : nothing
-    maxtime != nothing ? opt.maxtime = maxtime : nothing
+    for arg in (:stopval,:ftol_rel,:ftol_abs,:xtol_rel,:xtol_abs,:maxeval,:maxtime)
+        !haskey(kwargs,arg) || setproperty!(opt,arg,kwargs[arg])
+    end
 
     opt.min_objective = (x,grad)->objective_function(dims,iCp,iCq,x,grad)
     con_func = (res,x,grad)->constraint_function(dims,f,p̄,Q̄,res,x,grad)
     if isa(tol,Real)
         equality_constraint!(opt, con_func, ones(dims.nc))
     else
-        @assert length(tol) = dims.nc
+        @assert length(tol) == dims.nc
         equality_constraint!(opt, con_func, tol)
     end
     
