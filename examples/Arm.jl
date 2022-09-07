@@ -17,7 +17,7 @@ p̄ = [1,0]
 Q̄ = mapreduce(ϕ->q̃(p̄,ϕ,1e-3,1e-3), hcat, [pi/2,pi/3,pi/4,pi/6,pi/8])
 
 # Solution
-optp̂,optQ̂,optf,ret = calibrate(f,Cp,Cq,p̄,Q̄,1e-12;xtol_rel=1e-12)
+p̂,Q̂,optf,ret = calibrate(f,Cp,Cq,p̄,Q̄,1e-12;xtol_rel=1e-12)
 display(ret)
-display(optp̂)
-display(optQ̂)
+display(p̂)
+display(Q̂)
