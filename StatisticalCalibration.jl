@@ -24,7 +24,7 @@ struct ProblemDims
     end
 end
 
-function unpack(dims::ProblemDims, x::AbstractVector)
+function unpack(dims::ProblemDims, x::AbstractVector{<:Real})
     @assert length(x) == dims.nx
     p = x[1:dims.np]
     Q = reshape(x[dims.np+1:end],dims.nq,dims.nm)
@@ -34,10 +34,10 @@ end
 ## Quadratic objective function
 function objective_function(
     dims::ProblemDims,
-    iCp::AbstractMatrix,
-    iCq::AbstractMatrix,
-    x::AbstractVector,
-    grad::AbstractVector
+    iCp::AbstractMatrix{<:Real},
+    iCq::AbstractMatrix{<:Real},
+    x::AbstractVector{<:Real},
+    grad::AbstractVector{<:Real}
     )
     length(grad) == 0 || error("use a derivative-free solver")
     p̂,Q̂ = unpack(dims,x)
@@ -48,11 +48,11 @@ end
 function constraint_function(
     dims::ProblemDims,
     f::Function,
-    p̄::AbstractVector,
-    Q̄::AbstractMatrix,
-    res::AbstractVector,
-    x::AbstractVector,
-    grad::AbstractMatrix
+    p̄::AbstractVector{<:Real},
+    Q̄::AbstractMatrix{<:Real},
+    res::AbstractVector{<:Real},
+    x::AbstractVector{<:Real},
+    grad::AbstractMatrix{<:Real}
     )
     length(grad) == 0 || error("use a derivative-free solver")
     p̂,Q̂ = unpack(dims,x)
@@ -63,10 +63,11 @@ end
 ## Assert weight matrix sizes
 function calibrate(
     f::Function,
-    iCp::AbstractMatrix,
-    iCq::AbstractMatrix,
-    p̄::AbstractVector,
-    Q̄::AbstractMatrix;
+    iCp::AbstractMatrix{<:Real},
+    iCq::AbstractMatrix{<:Real},
+    p̄::AbstractVector{<:Real},
+    Q̄::AbstractMatrix{<:Real},
+    tol::Union{Real,AbstractVector{<:Real}};
     stopval=nothing,
     ftol_rel=nothing,
     ftol_abs=nothing,
@@ -94,8 +95,13 @@ function calibrate(
 
     opt.min_objective = (x,grad)->objective_function(dims,iCp,iCq,x,grad)
     con_func = (res,x,grad)->constraint_function(dims,f,p̄,Q̄,res,x,grad)
-    equality_constraint!(opt, con_func, 1e-12*ones(dims.nc))
-
+    if isa(tol,Real)
+        equality_constraint!(opt, con_func, ones(dims.nc))
+    else
+        @assert length(tol) = dims.nc
+        equality_constraint!(opt, con_func, tol)
+    end
+    
     # Solution
     optf,optx,ret = optimize(opt,zeros(dims.nx))
     optp̂,optQ̂ = unpack(dims,optx)
