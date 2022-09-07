@@ -1,5 +1,4 @@
-include("StatisticalCalibration.jl")
-using .StatisticalCalibration
+using StatisticalCalibration
 using LinearAlgebra
 
 q̃(p̄,ϕ,Δl,Δψ) = [ ϕ, (p̄[1]+Δl)*cos(ϕ+p̄[2]+Δψ), (p̄[1]+Δl)*sin(ϕ+p̄[2]+Δψ) ]
