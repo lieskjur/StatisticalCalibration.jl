@@ -63,8 +63,8 @@ end
 ## Assert weight matrix sizes
 function calibrate(
     f::Function,
-    iCp::AbstractMatrix{<:Real},
-    iCq::AbstractMatrix{<:Real},
+    Cp::AbstractMatrix{<:Real},
+    Cq::AbstractMatrix{<:Real},
     p̄::AbstractVector{<:Real},
     Q̄::AbstractMatrix{<:Real},
     tol::Union{Real,AbstractVector{<:Real}};
@@ -79,9 +79,11 @@ function calibrate(
     
     dims = ProblemDims(f,p̄,Q̄)
 
-    @assert size(iCp) == (dims.np,dims.np)
-    @assert size(iCq) == (dims.nq,dims.nq)
-
+    @assert size(Cp) == (dims.np,dims.np)
+    @assert size(Cq) == (dims.nq,dims.nq)
+    iCp = inv(Cp)
+    iCq = inv(Cq)
+    
     ## Optimization problem
     opt = Opt(:LN_COBYLA, dims.nx)
 
