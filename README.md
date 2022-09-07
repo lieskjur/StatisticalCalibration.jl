@@ -16,6 +16,13 @@ and keyword arguments in the form of [stopping criteria](https://github.com/Juli
 ## Example
 here is an [example](examples/Arm.jl) on a single arm measuring it's endpoint in 2D Cartesian coordinates
 
+## Installation
+To install this package on your system simply paste
+```
+] add https://github.com/lieskjur/StatisticalCalibration.jl
+```
+into your julia repl
+
 ## Algorithm and Approach information
 
 The approach is based around the *density function* of a [*multivariate normal distribution*](https://en.wikipedia.org/wiki/Multivariate_normal_distribution). The problem itself is then defined by a quadratic objective function corresponding to the probability of the corrections and equality constraints in the form of the mechanism's kinematic constaints.
