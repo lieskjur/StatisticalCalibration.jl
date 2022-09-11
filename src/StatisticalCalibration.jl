@@ -89,7 +89,7 @@ function calibrate(
     con_func = (res,x,grad)->constraint_function(dims,f,p̄,Q̄,res,x,grad)
     if isa(tol,Real)
         equality_constraint!(opt, con_func, ones(dims.nc))
-    else
+    elseif isa(tol,AbstractVector{<:Real})
         @assert length(tol) == dims.nc
         equality_constraint!(opt, con_func, tol)
     end
